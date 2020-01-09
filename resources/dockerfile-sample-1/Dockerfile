@@ -4,6 +4,7 @@
 #       to match the latest standards from docker hub... but it's doing the same thing as the video
 #       describes
 FROM debian:stretch-slim
+# image: tag
 # all images must have a FROM
 # usually from a minimal Linux distribution like debian or (even better) alpine
 # if you truly want to start with an empty container, use FROM scratch
@@ -12,6 +13,7 @@ ENV NGINX_VERSION 1.13.6-1~stretch
 ENV NJS_VERSION   1.13.6.0.1.14-1~stretch
 # optional environment variable that's used in later lines and set as envvar when container is running
 
+## Will create 1 additional layer!
 RUN apt-get update \
 	&& apt-get install --no-install-recommends --no-install-suggests -y gnupg1 \
 	&& \
@@ -41,11 +43,14 @@ RUN apt-get update \
 # optional commands to run at shell inside container at build time
 # this one adds package repo for nginx from nginx.org and installs it
 
+# Will create an additional layer! Docker can capture logs.
 RUN ln -sf /dev/stdout /var/log/nginx/access.log \
 	&& ln -sf /dev/stderr /var/log/nginx/error.log
 # forward request and error logs to docker log collector
 
-EXPOSE 80 443
+# Changes should be late in this file!!
+
+EXPOSE 80 443 8080
 # expose these ports on the docker virtual network
 # you still need to use -p or -P to open/forward these ports on host
 

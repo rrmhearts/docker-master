@@ -298,3 +298,22 @@ docker image tag nginx rrmhearts/nginx:testing
 docker image push rrmhearts/nginx:testing # will keep previous layers, just add testing label. IT KNOWS.
 
 ```
+
+## Dockerfile
+It's a recipe for creating an image. See `dockerfile-sample-1/` in `resources/`. 
+Five stanzas to a generic Dockerfile:
+1. FROM (req)
+2. ENV
+3. RUN 
+4. EXPOSE
+5. CMD (req)
+
+Caches steps in build, won't re-run. Short build times. But things after new changes will have to re-run because of dependencies. If part of file is going to change often, write it LATE in the Dockerfile.
+```
+docker image build -t custom_nginx .
+docker image ls
+
+# Make a change in Dockerfile, watch build use cached layers.
+docker image build -t custom_nginx . 
+```
+
