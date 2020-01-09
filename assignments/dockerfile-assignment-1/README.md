@@ -12,3 +12,15 @@ GET / 200 59.946 ms - 290
 GET /stylesheets/style.css 200 7.758 ms - 111
 GET /images/picard.gif 200 11.630 ms - 417700
 ```
+
+Tag and push image to dockerhub
+```
+docker tag dockerfile-ass1:latest rrmhearts/node-alpine-test
+docker image ls | head
+docker push rrmhearts/node-alpine-test
+```
+Delete and pull
+```
+docker image rm dockerfile-ass1:latest  rrmhearts/node-alpine-test:latest
+docker container run --rm -p 80:3000 rrmhearts/node-alpine-test
+```
