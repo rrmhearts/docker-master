@@ -317,3 +317,25 @@ docker image ls
 docker image build -t custom_nginx . 
 ```
 
+See `dockerfile-sample-2/` in `resources/`.
+```
+# Default
+$ docker container run -p 80:80 --rm nginx
+
+# W/ New Dockerfile
+$ docker image build -t nginx-with-html .
+Sending build context to Docker daemon  3.584kB
+Step 1/3 : FROM nginx:latest
+ ---> f7bb5701a33c
+Step 2/3 : WORKDIR /usr/share/nginx/html
+ ---> Running in a5be4f14ba3f
+Removing intermediate container a5be4f14ba3f
+ ---> e7d0440a9409
+Step 3/3 : COPY index.html index.html
+ ---> e23a2320335e
+Successfully built e23a2320335e
+Successfully tagged nginx-with-html:latest
+
+# Run new image!
+docker container run -p 80:80 --rm nginx-with-html
+```
