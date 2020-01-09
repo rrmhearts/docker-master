@@ -1,11 +1,4 @@
-# Docker Mastery Cheat Sheet
-
-## Tables of contents
-
-1. [Containers and Images](./CONTAINERS.md)
-2. [Lifetime and Data Volumes](./VOLUMES.md)
-
-*below is repeated from the files*
+# Containers and Images
 
 ## Versions and Install docker-machine
 ```
