@@ -304,6 +304,30 @@ cd resources/dockerfile/dockerfile-sample-2
 docker container run -d --name nginx -p 80:80 -v $(pwd):/usr/share/nginx/html nginx
 ```
 
+## Docker compose
+### yml
+What is in a `docker-compose.yml` file?
+```
+version: '3.1'  # if no version is specificed then v1 is assumed. Recommend v2 minimum
+services:  # containers. same as docker run
+  servicename: # a friendly name. this is also DNS name inside network
+    image: # Optional if you use build:
+    command: # Optional, replace the default CMD specified by the image
+    environment: # Optional, same as -e in docker run
+    volumes: # Optional, same as -v in docker run
+  servicename2:
+volumes: # Optional, same as docker volume create
+networks: # Optional, same as docker network create
+```
+### docker-compose CLI
+```
+git clone github.com/some/software
+docker-compose [-d] up
+docker-compose down
+
+docker-compose ps
+docker-compose top
+```
 ## Cleanup
 ### Prune to keep system clean
 You can use "prune" commands to clean up images, volumes, build cache, and containers. Examples include:
