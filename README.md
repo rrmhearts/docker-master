@@ -30,30 +30,22 @@ docker-machine --version
 docker container run --publish 80:80 nginx
 docker container run --publish 80:80 --detach nginx
 docker ps
-docker container stop fe324b77c79c
-
-docker container ls -a | grep nginx
-docker container run --publish 80:80 --detach --name webhost nginx
-docker container ls
+docker container [stop|rm] fe324b77c79c
 
 docker container run --publish 80:80 --detach --name webhost nginx
 docker container ls -a  | grep webhost
-docker container kill c753834789d9
-docker rm c7538
+docker container logs webhost            # see logs piped to stdout
+docker container top webhost             # see running process associated w/ container.
+docker container [kill|rm] c753834789d9
 docker container ls -a  | grep webhost
-docker container run --publish 80:80 --detach --name webhost nginx
-docker container logs webhost
-docker container top webhost
-docker container --help
 ```
 
 ## Deleting containers
-
+Containers must be stopped before they can be removed.
 ```
-docker container ls -a
-docker container rm 1714 45b5 9136 494d bb36 4b4b 0d8d
-docker container ls -a
-docker container rm -f f56 # force kill
+docker container [stop|rm] fe324b77c79c
+docker container rm 1714 45b5 (...)      # rm containers
+docker container rm -f f56               # force rm even if not stopped
 ```
 ## Running multiple containers
 ```
@@ -61,60 +53,39 @@ docker run --name mongo -d mongo
 docker top mongo
 ps aux | grep mongod
 docker stop mongo
-docker ps
-docker top mongo
-ps aux | grep mongod
+#####################################################################
 docker container run --publish 80:80 --detach nginx
 docker container run --publish 8080:80 --detach httpd
-docker container run --publish 3306:3306 --env MYSQL_ROOT_PASS=yes --detach mysql
-docker container ls
 docker container run --publish 3306:3306 --env MYSQL_RANDOM_ROOT_PASSWORD=yes --detach mysql
 docker container ls
-docker container logs mysql
-docker container logs cfa5
+docker container logs mysql    # look for randomized root password in logs. Setup by env variable.
 ps aux | grep mysql
 ps aux | grep httpd
 ps aux | grep nginx
 docker container ls
-docker container stop charming_hypatia tender_diffie infallible_bose 
-docker container rm cfa cfe 3a
-docker ps
-docker container ls
-docker container run --publish 8080:80 --detach httpd
-docker ps
-docker container stop modest_mclean 
-docker container rm modest_mclean 
-docker ps -a
-docker container rm f7 a6
-docker container run --publish 3306:3306 --env MYSQL_RANDOM_ROOT_PASSWORD=yes --detach mysql
-docker container run --publish 80:80 --detach nginx
-docker ps
+docker container [stop|rm] charming_hypatia tender_diffie infallible_bose 
 ```
 ## Inspecting containers
 ```
 docker container top mysql
-docker container top 
 docker container top d08
 docker container top nginx
 docker container top pensive_fermi 
-docker container top strange_bardeen 
-docker container inspect pensive_fermi 
-docker container stats
-docker container ls
+docker container inspect pensive_fermi # inspect config file
+docker container stats                 # see stats about container.
+```
+## Starting containers that already exist.
+```
 docker container run -it --name proxy nginx bash
-docker container ls
-docker container ls -a
 docker container run -it --name ubuntu ubuntu
 docke container ls -a
-docker container ls -a
 docker container start -ai --name ubuntu ubuntu
 docker container start -ai ubuntu
 docker container exec -it mysql bash
 docker ps
 ```
+## Pull and run commands in an image.
 ```
-docker container exec -it pensive_fermi bash
-docker ps
 docker pull alpine
 docker image ls
 docker container run -it alpine bash
@@ -122,10 +93,8 @@ docker container run -it alpine sh
 docker image
 docker image ls
 docker container ls
-docker container ls -a
-docker container port strange_bardeen 
-docker container port pensive_fermi 
-docker container port goofy_murdock 
+
+# See port and ipaddress information
 docker container run -p 80:80 --name webhost -d nginx
 docker ps
 docker container port strange_bardeen 
@@ -136,19 +105,9 @@ docker container inspect strange_bardeen
 A network bridge allows multiple docker containers to communicate with the outside world and each other. Creating a new bridge by `docker network create my_app_net` will include a DNS server that allows containers to communicate with each other through their container name as a hostname.
 ```
 docker container inspect --format '{{ .NetworkSettings.IPAddress }}' strange_bardeen 
-ifconfig en0
-ifconfig eno0
 ifconfig 
-docker container run -p 80:80 --name webhost -d nginx:alpine
 docker container run -p 80:80 --name nginx_alpine -d nginx:alpine
-docker container ls
-docker container stop strange_bardeen 
-docker container run -p 80:80 --name nginx_alpine -d nginx:alpine
-docker container rm strange_bardeen 
-docker network ls
 docker network inspect 
-docker container run -p 80:80 --name nginx_alpine -d nginx:alpine
-docker container ls
 docker container ls -a | grep nginx
 docker container rm nginx_alpine webhost 
 docker container run -p 80:80 --name nginx_alpine -d nginx:alpine
@@ -161,8 +120,6 @@ docker network inspect my_app_net
 ```
 ### Connect container to a new bridge.
 ```
-#docker container run -p 80:80 --network my_app_net --name nginx_my_app -d nginx:alpine
-
 docker container run -d --name new_nginx --network my_app_net nginx:alpine 
 docker container ls
 docker network inspect my_app_net 
@@ -170,29 +127,22 @@ docker network connect my_app_net nginx_alpine      # connect container to bridg
 docker container inspect nginx_alpine               # now two bridges w/ two IPs
 docker network disconnect my_app_net nginx_alpine 
 docker container inspect nginx_alpine 
-docker container ls
 docker stop pensive_fermi 
+
 docker network inspect my_app_net 
 docker container run -d --name my_nginx --network my_app_net nginx:alpine
-docker container exec my_nginx -it ping
-docker container exec -it  my_nginx ping new_nginx 
+docker container exec -it  my_nginx ping new_nginx    # ping between two containers using my_app_net hostnames
 docker container exec -it  new_nginx ping my_nginx 
-docker container --help
-docker container create --help
 docker container stats my_nginx 
 docker container inspect my_nginx 
+
 docker container run -it centos:7 bash
 docker container run -it ubuntu:14.04 bash
-docker container prune                          # will delete containers that are not running!!
-docker container ls
-docker container run --rm -it ubuntu:14.04 bash # will rm container when quit running.
-docker container ls
-docker container start --rm -it ubuntu:14.04 bash
-docker container start -it ubuntu:14.04 bash
-docker container start -ia ubuntu:14.04 bash
+docker container prune                             # will delete containers that are not running!!
+docker container run --rm -it ubuntu:14.04 bash    # will rm container when quit running.
+docker container start -ia ubuntu:14.04 bash       # start existing container, rm when closed.
 docker container start -ia ubuntu:14.04
 docker container ls
-docker container stop --rm nginx_alpine 
 docker container stop nginx_alpine 
 docker run -d --name elasticsearch --network my_app_net  --network-alias search elasticsearch:2
 docker run -d --name elasticsearch_2 --network my_app_net  --network-alias search elasticsearch:2
@@ -203,29 +153,18 @@ docker run -it ubuntu nslookup search --net
 docker run -it ubuntu
 docker ls
 docker ps
-docker run -it alpine nslookup search --net
-docker run -it alpine nslookup --net search
-docker run -it --network my_app_net alpine nslookup --net search
-docker run -it --network my_app_net alpine nslookup  search
-docker run -it --network my_app_net alpine nslookup search
+docker run -it --network my_app_net alpine nslookup  search   # lookup search, resolves to 1/2 elasticsearch*
+docker run -it --network my_app_net alpine nslookup search 
 docker run -it alpine nslookup search
 docker run -it --network my_app_net alpine nslookup search
+
 docker run -it --network my_app_net centos curl -s search:9200 --net
 docker run -it --network my_app_net centos curl -s search:9200
 docker container ls
 docker run -it --network my_app_net alpine nslookup search
 docker run -it --network my_app_net centos curl -s search:9200
-docker container ls
-docker container ls -a
-docker container prune 
-docker container ls -a
 docker run -it --rm --network my_app_net centos curl -s search:9200
 docker run -it --rm --network my_app_net alpine nslookup search
-docker container ls -a
-docker container rm elas*
-docker container rm f1c 3b2
-docker container rm f1c 3b2 -f
-docker container ls -a
 ```
 
 ## Images
@@ -345,6 +284,24 @@ Successfully tagged nginx-with-html:latest
 
 # Run new image!
 docker container run -p 80:80 --rm nginx-with-html
+```
+
+## Volumes
+Persistent data that outlives the container is possible. We want containers to be immutable, but we may also be storing a database. The database should live as a volume apart from the container.
+```
+# Run mysql with NAMED volume at default location. Normal id is a hash, use a name.
+docker container run -d --name mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=true -v mysql-db:/var/lib/mysql mysql
+docker volume ls
+# See the volume attached is named appropriately.
+docker container inspect mysql
+```
+### Bind mounts
+Mapping host file or dir to container file or dir. It's a link. Allows for persistent data as host files.
+Mounting is similar to choosing a volume path. Can maintain container code from host.
+```
+# use local index.html linked to nginx/html in container.
+cd resources/dockerfile/dockerfile-sample-2
+docker container run -d --name nginx -p 80:80 -v $(pwd):/usr/share/nginx/html nginx
 ```
 
 ## Cleanup
