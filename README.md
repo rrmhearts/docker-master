@@ -3,9 +3,10 @@
 ## Tables of contents
 
 1. [Containers and Images](./CONTAINERS.md)
-2. [Lifetime and Data Volumes](./VOLUMES.md)
+2. [Lifetime and Data Volumes + Docker Compose](./VOLUMES.md)
+2. [Docker Swarm](./SWARM.md)
 
-*below is repeated from the files*
+*Below is repeated from the files except* **Docker Swarm**. *that is only found in [SWARM.md](./SWARM.md).*
 
 ## Versions and Install docker-machine
 ```
@@ -323,7 +324,7 @@ networks: # Optional, same as docker network create
 ```
 git clone github.com/some/software
 docker-compose [-d] up
-docker-compose down
+docker-compose down [-v] [--rmi local] ## remove volumes (v) and/or images (rmi)
 
 docker-compose ps
 docker-compose top
