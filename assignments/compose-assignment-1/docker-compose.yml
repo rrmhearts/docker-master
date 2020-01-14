@@ -1,0 +1,16 @@
+version: '2'
+
+services:
+  drupal:
+    image: drupal
+    ports:
+        - '8080:80' # expose 8080 on host and sent to 80 in container
+  postgres:
+    image: postgres:11
+    volumes:
+        - postgres-db:/var/lib/postgresql/data:rw
+    environment:
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=password
+volumes:
+    postgres-db: {}
