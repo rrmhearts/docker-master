@@ -2,11 +2,11 @@
 
 ## Tables of contents
 
-1. [Containers and Images](./CONTAINERS.md)
-2. [Lifetime and Data Volumes + Docker Compose](./VOLUMES.md)
-2. [Docker Swarm](./SWARM.md)
+1. [Containers and Images](./notes/CONTAINERS.md)
+2. [Lifetime and Data Volumes + Docker Compose](./notes/VOLUMES.md)
+2. [Docker Swarm](./notes/SWARM.md)
 
-*Below is repeated from the files except* **Docker Swarm**. *that is only found in [SWARM.md](./SWARM.md).*
+*Below is repeated from the files except* **Docker Swarm**. *that is only found in [SWARM.md](./notes/SWARM.md).*
 
 ## Versions and Install docker-machine
 ```
