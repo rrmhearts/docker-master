@@ -98,3 +98,81 @@ docker service create --name search --replicas 3 -p 9200:9200 elasticsearch:2
 ```
 See load balancing in action by `curl localhost:9200`. Stateless load balancing. It is a TCP/IP load balancer, not DNS.
 This can be overcome with **Nginx** or **HAProxy LB proxy** or Docker Enterprise.
+
+## Swarm Stacks
+Stacks accept compose files as their declarative definition for services, networks, and volumes. Now it's possible to make use of `docker-compose.yml` files to bring up stacks of Docker containers, without having to install Docker Compose.
+
+The command is called `docker stack`, and it looks exactly the same to `docker-compose`. Here’s a comparison:
+```
+$ docker-compose -f docker-compose.yml up
+
+$ docker stack deploy -c docker-compose.yml somestackname
+```
+However, in stacks, you cannot `build` images like in docker-compose. But you can now `deploy` in compose file to determine # replicas and network things. `docker-compose` will ignore `deploy` commands and `docker stack` will ignore `build` commands.
+
+In **stack** you have multiple services, volumes and networks under one stack. Bring up all your services in one file. A stack only runs on one swarm. An example yml service can be seen below, a full picture can be found at [example-voting](./resources/swarm/swarm-stack-1/example-voting-app-stack.yml).
+```
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379"
+    networks:
+      - frontend
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+```
+
+## Secrets Storage
+Secure solution for storing secret data. Usernames, passwords, keys, certificates, etc. You need it but don't need it published! Supports strings and binaries. Secrets are stored in swarm manager nodes and then assigned to services. Only containers in assigned services can see them.
+```
+cat secret.txt
+docker secrete create psql_user secret_username.txt
+
+echo "mypass" | docker secret create psql_pass -
+
+docker secret ls
+docker service create --name psql --secret psql_user --secret psql_pass -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass -e POSTGRES_USER_FILE=/run/secrets/psql_user postgres
+```
+This is mapped into tmpfs. And you must shell into the container in order to see the secrets.
+```
+docker exec -it psql.1.fjxa37tl79hzhwx2xesxvdkfd bash
+cat /run/secrets/psql_user
+```
+Services are immutable, if you remove a secret from an existing container, it will destroy and recreate container. `docker service update --secret-rm`.
+
+### Secrets on Stacks
+Version has to be **3.1** or greater to use stacks with secrets. See [secrets-sample](resources/sample/secrets-sample-2) for example code.
+```
+version: "3.1"
+
+services:
+  psql:
+    image: postgres
+# assign secrets to this container.
+    secrets:
+      - psql_user
+      - psql_password
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/psql_password
+      POSTGRES_USER_FILE: /run/secrets/psql_user
+
+secrets:
+  psql_user:
+    file: ./psql_user.txt
+  psql_password:
+    file: ./psql_password.txt
+```
+From that folder, the stack can be run accordingly:
+```
+docker stack deploy -c docker-compose.yml mydb
+docker secret ls
+
+# This will remove secrets as well!
+docker stack rm mydb
+```
