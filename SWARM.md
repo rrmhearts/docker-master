@@ -25,6 +25,7 @@ Update the number of containers running: `docker service update [container_name]
 `docker container rm -f ...` will not remove a swarm. The manager will re-create the nodes. In order to remove a swarm service, you must do `docker service rm festive_volhard`.
 
 ## Swarm Cluster
+An example of a swarm cluster with 3 nodes.
 ```
 # Init swarm, returns key line. Use key line on other nodes.
 sudo docker swarm init
@@ -56,3 +57,44 @@ sudo docker service ls
 # Show service status.
 sudo docker service ps epic_wiles
 ```
+
+## Swarm Overlay Networking
+The overlay network driver creates a distributed network among multiple Docker daemon hosts. This network sits on top of (overlays) the host-specific networks, allowing containers connected to it (including swarm service containers) to communicate securely. Docker transparently *handles routing of each packet* to and from the correct Docker daemon host and the correct destination container.
+
+Overlay acts like everything is on the same subnet. It permits incoming traffic on node to be re-directed to the node where the service is running. For more information see [Docker Docs](https://docs.docker.com/network/overlay/).
+**Note:** *Postgres hostname is still psql.*
+```
+docker network create --driver overlay mydrupal
+docker service create --name psql --network mydrupal -e POSTGRES_PASSWORD=pass postgres
+docker service ls       # show number of replicas
+docker service ps psql  # show node running on - node1
+
+docker service create --name drupal --network mydrupal -p 80:80 drupal
+
+# This will run a command over and over again.
+watch docker service ls 
+
+docker service ps drupal # will run on node2
+```
+### Aside on Swarm Networks
+**Overlay networks** manage communications among the Docker daemons participating in the swarm. You can create overlay networks, in the same way as user-defined networks for standalone containers. You can attach a service to one or more existing overlay networks as well, to enable service-to-service communication. Overlay networks are Docker networks that use the overlay network driver.
+
+The **ingress network** is a special *overlay network* that facilitates load balancing among a service's nodes. When any swarm node receives a request on a published port, it hands that request off to a module called IPVS. IPVS keeps track of all the IP addresses participating in that service, selects one of them, and routes the request to it, over the ingress network.
+
+The ingress network is created automatically when you initialize or join a swarm. Most users do not need to customize its configuration, but Docker 17.05 and higher allows you to do so.
+
+The **docker_gwbridge** is a *bridge network* that connects the overlay networks (including the ingress network) to an individual Docker daemon's physical network. By default, each container a service is running is connected to its local Docker daemon host's docker_gwbridge network.
+
+The docker_gwbridge network is created automatically when you initialize or join a swarm. Most users do not need to customize its configuration, but Docker allows you to do so.
+
+## Swarm Routing Mesh
+Rouing mesh routes ingress (incoming) packets for a service to proper task. It distributes packets to the right services. It uses IPVS from Linux Kernel. It load balances swarm services across their tasks. Containers talk to other containers using an *overlay network* using VIP. External traffic incoming to published ports can come into any node in the swarm. It will then re-route to the proper container based on load balancing. You don't care what node a service is on, it can vary depending on failures and load balancing.
+
+A **swarm load balancer** exists on each node and may re-direct traffic to anther node.
+
+### Example of Use
+```
+docker service create --name search --replicas 3 -p 9200:9200 elasticsearch:2
+```
+See load balancing in action by `curl localhost:9200`. Stateless load balancing. It is a TCP/IP load balancer, not DNS.
+This can be overcome with **Nginx** or **HAProxy LB proxy** or Docker Enterprise.
