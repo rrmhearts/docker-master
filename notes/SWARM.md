@@ -176,3 +176,85 @@ docker secret ls
 # This will remove secrets as well!
 docker stack rm mydb
 ```
+
+#### Secrets on Docker-Compose
+Secrets are **NOT** secret in Docker-compose, however they do work. They are essentially bind mounted into the image. This is only for development and testing off of a swarm. See [secrets-sample-2](./resources/sample/secrets-sample-2) and run `docker-compose up -d` for testing. You can see the "secret" by `docker-compose exec psql cat /run/secrets/psql_user`.
+
+## Single Compose, Full App Lifestyle
+We will be using [swarm-stack-3](./resources/swarm/swarm-stack-3) to see the full app lifestyle of development, build, test, and deploy. Docker compose will read in a file called `docker-compose.override.yml` and override any settings default in the `docker-compose.yml`.
+
+### Development Environment
+```docker-compose up -d```
+This will use the `docker-compose.yml` as nomal. It will also read in the `docker-compose.override.yml` and override what it may. You know this was called in when you inspect `docker inspect swarm-stack-3_drupal_1`. This is for a **local** *development* environment. (bring down when down).
+
+### Test Environment
+```docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d```
+The base file always comes first, and the test file comes second. The second *yml* file will override the first. This is for a *test* or CI environment and may be remote.
+
+### Production Environment
+```docker-compose -f docker-compose.yml -f docker-compose.prod.yml config > output.yml```
+For production, you can use config to combine the input files and create an output file to be used in production. This kind of command could be used in a remote *production* environment. Another option for a remote production environment is `docker stack deploy` using the listed `output.yml` file.
+
+Look up **compose extends**. May not yet work in Stacks.
+
+### Service Updates
+Provides rolling replacement of tasks/containers in a service. Limits downtime. Will replace containers for most changes. Has many options to control the update *+70*. Many are create options and will usually change adding *-add* or *-rm* to them. Includes rollback and healthcheck options. Also has scale and rollback subcommands for quicker access: `docker service scale web=4` and `docker service rollback web`. A stack deplay when pre-existing will issue service updates.
+* Update the image used to a newer version `docker service update --image myapp:1.2.1 <servicename>`
+* Adding an environment variable or remove a port 
+```docker service --env-add NODE_ENV=production --publish-rm 8080```
+* Change number of replicas of two services `docker service scale web=8 api=6`
+* Same command to update stack. Edit yml, then `docker stack deploy -c file.yml <stackname>`
+
+**Live example**
+```
+docker service create -p 8088:80 --name web nginx:1.13.7
+docker service ls
+
+# scale up
+docker service scale web=5 
+
+# change image in service.
+docker service update --image nginx:1.13.6 web 
+
+# remove old port, publish new port.
+docker service update --publish-rm 8088 --publish-add 9090:80
+
+# re-balancing nodes. Will replace tasks and put on unused nodes.
+docker service update --force web
+```
+
+### Healthchecks
+Added in 1.12 and supported by everything. Docker engine will exec the command in the container. It expects exit 0 (OK) or exit 1 (Error). Three container states: *starting, healthy, unhealthy*. Much better then *"is binary still running?"* But not a external monitoring replacement. ***basic health***
+
+Healthcheck status shows up in `docker container ls` and last 5 in `docker container inspect`. Docker does nothing with healthchecks but services will replace tasks. Will pause / change service update commands.
+**Example**
+```
+docker container run \
+  --health-cmd="curl -f localhost:9300/_cluser/health || false" \
+  --health-interval=5s \
+  --health-retries=3 \
+  --health-timeout=2s \
+  --health-start-period=15s \
+  elasticsearch:2
+```
+If you put `localhost:9200` as the port, the health check will fail. Use `docker container ls` to see health under *STATUS*. In a Dockerfile, you use `HEALTHCHECK curl -f http://localhost/ || false`. OR
+```
+FROM nginx:1.13
+
+HEALTHCHECK --interval=30s --timeout=3s \
+   CMD curl -f http:http://localhost/ || exit 1
+```
+
+**Live Example**
+```
+docker container run --name p1 -d postgres
+docker container ls
+
+# Look at difference
+docker container run --name p2 -d --health-cmd="pg_isready -U postgres || exit 1" postgres
+docker container ls
+
+docker container inspect p2
+docker service create --name p1 postgres
+docker service create --name p2 --health-cmd="pg_isready -U postgres || exit 1" postgres
+```
