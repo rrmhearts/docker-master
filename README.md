@@ -3,8 +3,10 @@
 ## Tables of contents
 
 1. [Containers and Images](./notes/CONTAINERS.md)
-2. [Lifetime and Data Volumes + Docker Compose](./notes/VOLUMES.md)
-2. [Docker Swarm](./notes/SWARM.md)
+2. [Data Volumes + Docker Compose](./notes/VOLUMES.md)
+3. [Docker Swarm](./notes/SWARM.md)
+4. [Docker Registries](./notes/REGISTRY.md)
+5. [Kubernetes](./notes/KUBERNETES.md)
 
 *Below is repeated from the files except* **Docker Swarm**. *that is only found in [SWARM.md](./notes/SWARM.md).*
 
