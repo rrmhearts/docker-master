@@ -177,3 +177,6 @@ We’ve covered all the options, from running an insecure registry, through addi
 There is still more you can do with Docker Registry - using a different storage driver so the image data is saved to reliable share storage, and setting up your registry as a caching proxy for Docker Store are good next steps.
 
 ## Registry with Swarm
+You can pull from a registry with swarm: `docker service create --name nginx -p 80:80 --replicas 5 --detach=false 127.0.0.1:5000/nginx`
+
+That local registry must be accessible by all of the nodes in the swarm.

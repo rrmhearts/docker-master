@@ -7,6 +7,7 @@
 3. [Docker Swarm](./notes/SWARM.md)
 4. [Docker Registries](./notes/REGISTRY.md)
 5. [Kubernetes](./notes/KUBERNETES.md)
+6. [Production](#Docker-in-Production)
 
 *Below is repeated from the files except* **Docker Swarm**. *that is only found in [SWARM.md](./notes/SWARM.md).*
 
@@ -350,3 +351,18 @@ Images with `<none>` as the repo and tag are "dangling" dependencies if you've d
 ```
 docker rmi $(docker images -f "dangling=true" -q)
 ```
+
+# Docker in Production
+
+| Swarm GUI          | Portainer                   |
+|--------------------|-----------------------------|
+| Central Monitoring | Librato, Sysdig             |
+| Central Loggin     | Docker for AWS/Azure        |
+| Layer 7 Proxy      | Flow-Proxy, Traefik         |
+| Registry           | Docker Hub, Quay            |
+| CI/CD              | Codeship, TravisCI, Jenkins |
+| Storage            | Docker for AWS/Azure        |
+| Networking         | Docker Swarm                |
+| Orchestration      | Docker Swarm, Kubernetes    |
+| Runtime            | Docker                      |
+| HW/OS              | Docker for AWS/Azure        |
