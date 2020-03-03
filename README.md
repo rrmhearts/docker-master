@@ -399,6 +399,12 @@ Docker is entirely based around *kernel namespaces*. A namespace categories and 
 
 Root access and/or kernel modules that go around namespace isolation will destroy any Docker isolation/security. Docker containers can run in **privileged** mode which would allow you to install kernel modules and have complete access to `/dev`, etc. Watch out! (someone could mount the root filesystem)
 
+### These articles are of interest
+* [Recreating Docker](https://medium.com/@flag_seeker/linux-container-from-scratch-339c3ba0411d)
+* [Intro to Namespaces](https://www.youtube.com/watch?v=-YnMr1lj4Z8)
+* [Kernel sources](https://www.youtube.com/watch?v=sHp0Q3rvamk)
+* [Under the Hood](https://www.codementor.io/blog/docker-technology-5x1kilcbow)
+
 # Further Notes
 ## Docker in Production
 These tools may be used for production. Choose one from each category.
