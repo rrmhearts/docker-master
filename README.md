@@ -405,6 +405,9 @@ Root access and/or kernel modules that go around namespace isolation will destro
 * [Kernel sources](https://www.youtube.com/watch?v=sHp0Q3rvamk)
 * [Under the Hood](https://www.codementor.io/blog/docker-technology-5x1kilcbow)
 
+### Doqueru
+This repo has an excellent re-implementation of docker example. See [Doqueru translation](./resources/doqueru). It uses C++ and Linux system calls to "re-implement" a basic docker runtime.
+
 # Further Notes
 ## Docker in Production
 These tools may be used for production. Choose one from each category.
