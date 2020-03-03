@@ -7,10 +7,10 @@
 3. [Docker Swarm](./notes/SWARM.md)
 4. [Docker Registries](./notes/REGISTRY.md)
 5. [Kubernetes](./notes/KUBERNETES.md)
-6. [Production](#Docker-in-Production)
-7. [How Does Docker Work](#How-Docker-Works)
+6. [How Does Docker Work](#How-Docker-Works)
+7. [Further Notes](#Further-Notes)
 
-*Below is repeated from the files except* **Docker Swarm**. *that is only found in [SWARM.md](./notes/SWARM.md).*
+*Below is repeated from the files except* **Docker Swarm** through **Kubernetes**, (3)-(5). *that is only found in [SWARM.md](./notes/SWARM.md) etc.*
 
 ## Versions and Install docker-machine
 ```
@@ -353,21 +353,6 @@ Images with `<none>` as the repo and tag are "dangling" dependencies if you've d
 docker rmi $(docker images -f "dangling=true" -q)
 ```
 
-# Docker in Production
-
-| Swarm GUI          | Portainer                   |
-|--------------------|-----------------------------|
-| Central Monitoring | Librato, Sysdig             |
-| Central Loggin     | Docker for AWS/Azure        |
-| Layer 7 Proxy      | Flow-Proxy, Traefik         |
-| Registry           | Docker Hub, Quay            |
-| CI/CD              | Codeship, TravisCI, Jenkins |
-| Storage            | Docker for AWS/Azure        |
-| Networking         | Docker Swarm                |
-| Orchestration      | Docker Swarm, Kubernetes    |
-| Runtime            | Docker                      |
-| HW/OS              | Docker for AWS/Azure        |
-
 # How Docker Works
 Every Docker container is a Linux namespace. Docker executes processes under a specific namespace in Linux. Docker is written in Go and takes advantages of the Linux kernel to function. It uses `namespaces` to provide isolated workspaces called the *container*. When you run a container, Docker creates a set of namespaces for that container, such as: 
 * `pid` (process isolation)
@@ -411,4 +396,39 @@ Three syscalls can directly manipulate namespaces:
 ## Docker usage
 Docker is entirely based around *kernel namespaces*. A namespace categories and isolates PIDs from some perspective. A process will have multiple PIDs based on what namespace you are looking at it from.
 * `getpid` will look up PID inside a namespace. Uses the current process to get namespace, uses namespace to get the right PID.
+
 Root access and/or kernel modules that go around namespace isolation will destroy any Docker isolation/security. Docker containers can run in **privileged** mode which would allow you to install kernel modules and have complete access to `/dev`, etc. Watch out! (someone could mount the root filesystem)
+
+# Further Notes
+## Docker in Production
+These tools may be used for production. Choose one from each category.
+
+| Concern            | Solution                    |
+|--------------------|-----------------------------|
+| Swarm GUI          | Portainer.io                |
+| Central Monitoring | Librato, Sysdig             |
+| Central Loggin     | Docker for AWS/Azure        |
+| Layer 7 Proxy      | Flow-Proxy, Traefik         |
+| Registry           | Docker Hub, Quay            |
+| CI/CD              | Codeship, TravisCI, Jenkins |
+| Storage            | Docker for AWS/Azure        |
+| Networking         | Docker Swarm                |
+| Orchestration      | Docker Swarm, Kubernetes    |
+| Runtime            | Docker                      |
+| HW/OS              | Docker for AWS/Azure        |
+
+## Security notes
+* See [Brett's list](https://github.com/BretFisher/ama/issues/17)
+* Create and change user from root if possible in container. See [https://github.com/BretFisher/dockercon19/blob/master/1.Dockerfile](https://github.com/BretFisher/dockercon19/blob/master/1.Dockerfile). DO not run as root inside container...
+* User namespaces need to be enabled. So "root user in a container isn't really root on the host."
+* Use snyk or github to scan for vulnerability issues.
+* Use an image/package scanner for CVE vulnerabilities. Try **Trivy**, Clair, Quay, or aqua MicroScanner
+* Falco identifies bad behavior in containers. Made by Sysdig. If you did something you shouldn't have, Falco will audit and log it.
+* Content Trust, sign code, only signed code can be run. Requires code and image signing.
+* Lock down your containers as best as possible. Use best security practices for each container such as modifying security policies for a PostgreSQL database.
+* Docker root-less. Run *dockerd* daemon as a normal user on the host. **NEW** feature, may want to wait on it. Will prevent virtual networking which requires root.
+
+## DevOps Notes
+* Do not run a DB in a container unless you want multiple separate DBs on one machine. Cloud hosted solutions or bare-metal are better options. 
+* Always use Swarm for single node in production instead of Docker Compose. You can prevent downtime and replace/update containers without customers losing service.
+* No hard coded environment that would change between different environments. Pull environment variables out of app. **Strict separation of config from code.** See the *Twelve Factor App* principles. Store config in environment variables that are passed into the container. You can pass ENV into a docker container through an entrypoint script.

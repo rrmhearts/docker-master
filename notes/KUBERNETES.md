@@ -231,20 +231,3 @@ The diff looks at the YAML on record and the YAML on your local machine and prov
 * *Kubernetes Dashboard*: a gui, yuck.
 * *Kubectl Namespaces and Context*: namespaces limit scope, aka "virtual clusters". Some are built in and you can see `kubectl get namespaces`. Context changes `kubectl` cluster and namespaces. See `~/.kube/config` file or `kubectl config get-contexts`.
 * *K8s* can be the "differencing and scheduling engine backbone" for many different projects. See knative, k3s, k3OS, service mesh
-
-# Further Notes
-## Security notes
-* See [Brett's list](https://github.com/BretFisher/ama/issues/17)
-* Create and change user from root if possible in container. See [https://github.com/BretFisher/dockercon19/blob/master/1.Dockerfile](https://github.com/BretFisher/dockercon19/blob/master/1.Dockerfile). DO not run as root inside container...
-* User namespaces need to be enabled. So "root user in a container isn't really root on the host."
-* Use snyk or github to scan for vulnerability issues.
-* Use an image/package scanner for CVE vulnerabilities. Try **Trivy**, Clair, Quay, or aqua MicroScanner
-* Falco identifies bad behavior in containers. Made by Sysdig. If you did something you shouldn't have, Falco will audit and log it.
-* Content Trust, sign code, only signed code can be run. Requires code and image signing.
-* Lock down your containers as best as possible. Use best security practices for each container such as modifying security policies for a PostgreSQL database.
-* Docker root-less. Run *dockerd* daemon as a normal user on the host. **NEW** feature, may want to wait on it. Will prevent virtual networking which requires root.
-
-## DevOps Notes
-* Do not run a DB in a container unless you want multiple separate DBs on one machine. Cloud hosted solutions or bare-metal are better options. 
-* Always use Swarm for single node in production instead of Docker Compose. You can prevent downtime and replace/update containers without customers losing service.
-* No hard coded environment that would change between different environments. Pull environment variables out of app. **Strict separation of config from code.** See the *Twelve Factor App* principles. Store config in environment variables that are passed into the container. You can pass ENV into a docker container through an entrypoint script.
