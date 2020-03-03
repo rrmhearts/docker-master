@@ -159,3 +159,92 @@ We don't know the state, but we do know the end result that we want. This is for
 * Declarative objects: `apply -f file.yml`, best for production, easy to automate, hard to understand and predict changes. Same command every time.
 
 **Don't mix three approaches.** But get used to declarative approach for production. Create git repo to store yml files. Learn the imperative CLI for local test setup. Move to `apply -f file.yml` for production and store yaml in git, commit each change before you apply.
+
+## Declarative Kubernetes
+```
+kc apply
+k8s config yaml
+build yaml
+build yaml spec
+dry runs and diffs
+labels and annotations
+```
+
+### Apply
+```
+kubectl apply -f filename.yml
+kubectl apply -f folder/
+kubectl apply -f https://bret.run/pod.yml ## similar to curl -L https://bret.run/pod.yml
+
+```
+One command for everything. Replaces `kc create`, `kc replace` and `kc edit`.
+### Configuration of YAML
+```
+$ curl -L https://bret.run/pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.17.3
+    ports:
+    - containerPort: 80
+```
+YAML is easier for humans to read than JSON. It will be converted by Kubernetes. Each file contains one or more **Manifests**. Each manifest needs four parts (root key:values in the file): *apiVersion*, *kind*, *metadata*, and *spec*. (also see [resources/k8s-yaml/](./resources/k8s-yaml/))
+
+### Building YAML Files
+* **kind**: we can get a list of resources the cluster supports. `kc api-resources` shows the list of sub-options for the kind field. Notice some resources have multiple API's (new vs old)
+* **apiVersion**: we can get the API versions the cluster supports. `kc api-versions` shows the different versions of APIs we need to worry about. Don't use the beta versions. YAML will break in several releases.. These are values for the *apiVersion* field in YAML. The `Kind + ApiVersion` determines resource and version for that resource.
+* **metadata**: only name is required
+* **spec**: where all the actions are, including containers to be created. See next section
+
+### Building YAML Spec
+We can get all the keys each **kind** supports by ` kc explain services --recursive`. This will list services available. Find more information about what it does by `kc explain services.spec`. Provides descriptions of each portion under spec. You can drill down further by `kc explain services.spec.type`. These are the man pages for Kubernetes. You can look at further subcategories as noted. *i.e.* `kc explain deployment.spec.template.spec.volumes.nfs.server`. We can also use docs online at [kubernetes.io/docs/reference/#api-reference](kubernetes.io/docs/reference/#api-reference).
+
+### Dry Runs and Diffs
+Dry run will go to server and see what needs to happen and report back the diff. In [resources/app.yml](./resources/k8s-yaml/app.yml) uses **selector** to find a resource. Compare
+```
+kc apply -f app.yml --dry-run
+kc apply -f app.yml --server-dry-run
+
+# see the diff
+kc diff -f app.yml
+```
+The diff looks at the YAML on record and the YAML on your local machine and provides a literal diff.
+### Labels and Label Selectors
+**Labels** go under *metadata* in your YAML. It is a list of `key: value`  for identifying your resource later by selecting, grouping, or filtering it. Examples include: `tier: frontend`, `app: api`, `env: prod`, `customer: acme.co`. Not meant for large, complex, non-identification information. You can filter pods to get a command: `kc get pods -l app=nginx`.
+
+**Label Selectors** are the glue telling services and deployments which pods are theirs. *Which pods belong to me?* Many resources use these to "link" resource dependencies. The term *selector* is used in the YAML file to direct traffic. The spec will match the label.. between Service and Deployment, see [resources/k8s-yaml/app.yml](./resources/k8s-yaml/app.yml) for example. They can be used to control which pods go to which nodes.
+
+## Future of Kubernetes
+
+* *Storage in Kubernetes*: containers are stateless. K8s uses a new resource type called StatefulSets that makes Pods more "sticky." Not recommended for beginners -- use DaaS like cloud databases instead. You can add volumes in K8s. There are two types of volumes:
+  * *Volumes* are tied to a Pod. All containers in a Pod can share them.
+  * *PersistentVolumes* are defined at the cluster level. Multiple pods can share them, outlives a Pod. Separates storage config from the Pod using it. The Pod makes a claim and storage is provided.
+  * Also see CSI plugins as a new way to connect to storage.
+* *Ingress*: None of our Service types work at OSI Layer 7 (HTTP). We need to route outside connections based on hosname or URL. Ingress Controllers do this with 3rd party proxies. Also see Nginx, Traefix, HAProxy, F5, Envoy, Istio, etc..
+* *CRD's and the Operator Pattern*: You can add 3rd party Resources and Controllers, this extends the K8s API and CLI. *Operator*: automate deployment and management of complex apps. Allows operation of other opensource stuff from K8s such as databases, monitoring tools, backups, custom ingresses, etc.
+* *Higher Deployment Abstractions*: all our *kubectl* commands talk to K8s API. There are ways to add applications on top of K8s in order to deploy such as **Helm** and *JenkinsX*. Helm allows you to create templates to simplify deployment. Creates YAML for you. K8s preference is that you use **Compose on Kubernetes** which comes with Docker Desktop. You can choose your orchestrator. **Translates Compose YAML to K8s YAML**
+  * All these tools are about *templating YAML*. **Helm** is the best solution today. Look into the `docker app` subcommand.
+* *Kubernetes Dashboard*: a gui, yuck.
+* *Kubectl Namespaces and Context*: namespaces limit scope, aka "virtual clusters". Some are built in and you can see `kubectl get namespaces`. Context changes `kubectl` cluster and namespaces. See `~/.kube/config` file or `kubectl config get-contexts`.
+* *K8s* can be the "differencing and scheduling engine backbone" for many different projects. See knative, k3s, k3OS, service mesh
+
+# Further Notes
+## Security notes
+* See [Brett's list](https://github.com/BretFisher/ama/issues/17)
+* Create and change user from root if possible in container. See [https://github.com/BretFisher/dockercon19/blob/master/1.Dockerfile](https://github.com/BretFisher/dockercon19/blob/master/1.Dockerfile). DO not run as root inside container...
+* User namespaces need to be enabled. So "root user in a container isn't really root on the host."
+* Use snyk or github to scan for vulnerability issues.
+* Use an image/package scanner for CVE vulnerabilities. Try **Trivy**, Clair, Quay, or aqua MicroScanner
+* Falco identifies bad behavior in containers. Made by Sysdig. If you did something you shouldn't have, Falco will audit and log it.
+* Content Trust, sign code, only signed code can be run. Requires code and image signing.
+* Lock down your containers as best as possible. Use best security practices for each container such as modifying security policies for a PostgreSQL database.
+* Docker root-less. Run *dockerd* daemon as a normal user on the host. **NEW** feature, may want to wait on it. Will prevent virtual networking which requires root.
+
+## DevOps Notes
+* Do not run a DB in a container unless you want multiple separate DBs on one machine. Cloud hosted solutions or bare-metal are better options. 
+* Always use Swarm for single node in production instead of Docker Compose. You can prevent downtime and replace/update containers without customers losing service.
+* No hard coded environment that would change between different environments. Pull environment variables out of app. **Strict separation of config from code.** See the *Twelve Factor App* principles. Store config in environment variables that are passed into the container. You can pass ENV into a docker container through an entrypoint script.

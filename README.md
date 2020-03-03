@@ -8,6 +8,7 @@
 4. [Docker Registries](./notes/REGISTRY.md)
 5. [Kubernetes](./notes/KUBERNETES.md)
 6. [Production](#Docker-in-Production)
+7. [How Does Docker Work](#How-Docker-Works)
 
 *Below is repeated from the files except* **Docker Swarm**. *that is only found in [SWARM.md](./notes/SWARM.md).*
 
@@ -366,3 +367,48 @@ docker rmi $(docker images -f "dangling=true" -q)
 | Orchestration      | Docker Swarm, Kubernetes    |
 | Runtime            | Docker                      |
 | HW/OS              | Docker for AWS/Azure        |
+
+# How Docker Works
+Every Docker container is a Linux namespace. Docker executes processes under a specific namespace in Linux. Docker is written in Go and takes advantages of the Linux kernel to function. It uses `namespaces` to provide isolated workspaces called the *container*. When you run a container, Docker creates a set of namespaces for that container, such as: 
+* `pid` (process isolation)
+* `net` (network interfaces)
+* `ipc` (managing access to IPC resources)
+* `mnt` (managing filesystem mount points)
+* `uts` (isolating kernel and version identifiers)
+Docker also uses `control groups` to limit an application to a specific set of resources, including files, hardware and constraints on memory available, etc.
+
+A container may share the same user ID as the  host user, also, process running in a container are running on the *host*, but have different PIDs between the two. Run `watch ps ax` inside a container and look for it on the host... 
+
+Use `pstree -p` and you can find the parent of the `watch..` process running in the container. It is a child of `systemd`-->`containerd`-->`containerd-shim`-->`bash`-->`watch`. *Containerd* is a container runtime that manages the container lifecycle of the host system (storage, execution, supervision, network attachements, etc). Containerd requires runc. *Runc* is a CLI tool for spawning and running containers.
+
+Docker is a client CLI tool that communicates with the Docker daemon (`dockerd`) over REST or unix sockets. By default, the Docker daemon automatically starts containerd. Containerd uses runc to spawn and run containers. Let's use ```sudo strace -f -p `pid containerd` -o strace_log``` and start a docker container with `sudo docker run -d --rm -i ubuntu...`. Look at the syscall trace: search for `exec` syscalls. (look for runc, unshare, containerd, etc). `unshare` is called by runc. Unshare allows a process to disassociate parts of its execution context that are currently being shared with other processes. It will disassociate, among other things, the PID: a new PID namespace will be created for its children. It's first child process will have the PID of 1. `clone` is used to create this child. In the namespace, each new child of runc will have PIDs of 1,2,3,4... but outside the namespace where strace is running, they will have their normal, high-valued PID values.
+
+The PID namespace lives in the host's universe, but also has it's own *microuniverse* where it has a new INIT and reset of PIDs etc. 
+So, `containerd`-->`runc` ----> `runc(1)` --> `runc(2)`...
+
+You can check the namespace of a file in the proc filesystem. Compare the following: 
+* `pidof watch` (30232) and `sudo ls -lah /proc/30232/ns` (container process namespace)
+* `sudo ls -lah /proc/$$/ns` (current shell namespace)
+But they share the same user namespace. Namespaces are a kernel feature. Docker is a kernel feature.
+
+Use the PID of watch on the host system, you can log into the docker container using: `sudo nsenter -t 27585 -m -u -i -n -p /bin/bash`. How does this differ from `docker exec -it container_name /bin/bash`??? Look at `id` and `mount`, it will match docker. One differnce is that, nsenter will make you *truly* root inside the container. Docker exec will drop down priveleges to normal user level. Nsenter can be used to install new tools that require root, instead of building sudo into the container. You can also use `docker exec --user root`.
+
+## Kernel namespaces
+**Namespaces** are a feature of the Linux kernel that partitions kernel resources such that one set of processes sees one set of resources while another set of processes sees a different set of resources. The feature works by having the same namespace for a set of resources and processes, but those namespaces refer to distinct resources. Resources may exist in multiple spaces. Examples of such resources are process IDs, hostnames, user IDs, file names, and some names associated with network access, and interprocess communication.
+
+## Implementation
+The kernel assigns each process a symbolic link per namespace kind in /proc/<pid>/ns/. The inode number pointed to by this symlink is the same for each process in this namespace. This uniquely identifies each namespace by the inode number pointed to by one of its symlinks.
+
+Reading the symlink via readlink returns a string containing the namespace kind name and the inode number of the namespace.
+
+### Syscalls
+Three syscalls can directly manipulate namespaces:
+
+* *clone*, flags to specify which new namespace the new process should be migrated to.
+* *unshare*, allows a process (or thread) to disassociate parts of its execution context that are currently being shared with other processes (or threads)
+* *setns*, enters the namespace specified by a file descriptor.
+
+## Docker usage
+Docker is entirely based around *kernel namespaces*. A namespace categories and isolates PIDs from some perspective. A process will have multiple PIDs based on what namespace you are looking at it from.
+* `getpid` will look up PID inside a namespace. Uses the current process to get namespace, uses namespace to get the right PID.
+Root access and/or kernel modules that go around namespace isolation will destroy any Docker isolation/security. Docker containers can run in **privileged** mode which would allow you to install kernel modules and have complete access to `/dev`, etc. Watch out! (someone could mount the root filesystem)
